@@ -7,6 +7,7 @@ int main(int argc, char *argv[])
         printf("Please provide at least 3 arguments: <name> <address> <age>\n");
         return 1;
     }
+	
     printf("|-----------------------------------|\n");
     printf("    Program name:>%s\n", argv[0]);
 	printf("|-----------------------------------|\n");
