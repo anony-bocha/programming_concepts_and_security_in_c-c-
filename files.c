@@ -10,7 +10,7 @@ int main()
 
     if (fp == NULL)
     {
-        printf("File cannot be opened. Check if it is open elsewhere.\n");
+        printf("File cannot be opened.. Check if it is open elsewhere.\n");
         return 1;
     }
 
