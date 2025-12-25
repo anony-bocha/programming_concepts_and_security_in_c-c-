@@ -1,4 +1,5 @@
 #include <stdio.h>
+#include <string.h>
 
 #define ENO 0
 #define DEL 1
@@ -8,10 +9,10 @@ typedef struct {
     unsigned long dk[32];
 } des_ctx;
 
-extern void deskey(unsigned char*, short);
-extern void usekey(unsigned long*);
-extern void cpkey(unsigned long*);
-extern void des(unsigned char*, unsigned char*);
+void deskey(unsigned char*, short);
+void usekey(unsigned long*);
+void cpkey(unsigned long*);
+void des(unsigned char*, unsigned char*);
 
 static void scrunch(unsigned char*, unsigned long*);
 static void unscrun(unsigned long*, unsigned char*);
@@ -19,14 +20,6 @@ static void desfunc(unsigned long*, unsigned long*);
 static void cookey(unsigned long*);
 
 static unsigned long KnL[32];
-static unsigned long KnR[32];
-static unsigned long Kn3[32];
-
-static unsigned char Df_Key[24] = {
-    0x01,0x23,0x45,0x67,0x89,0xab,0xcd,0xef,
-    0xfe,0xdc,0xba,0x98,0x76,0x54,0x32,0x10,
-    0x89,0xab,0xcd,0xef,0x01,0x23,0x45,0x67
-};
 
 static unsigned short bytebit[8] = {128, 64, 32, 16, 8, 4, 2, 1};
 
@@ -425,11 +418,15 @@ void des_enc(des_ctx *dc, unsigned char *data, int blocks) {
     unsigned long work[2];
     int i;
     unsigned char *cp;
+    unsigned long saved_keys[32];
+    
+    memcpy(saved_keys, dc->ek, sizeof(saved_keys));
+    for (i = 0; i < 32; i++) KnL[i] = saved_keys[i];
     
     cp = data;
     for (i = 0; i < blocks; i++) {
         scrunch(cp, work);
-        desfunc(work, dc->ek);
+        desfunc(work, KnL);
         unscrun(work, cp);
         cp += 8;
     }
@@ -439,11 +436,15 @@ void des_dec(des_ctx *dc, unsigned char *data, int blocks) {
     unsigned long work[2];
     int i;
     unsigned char *cp;
+    unsigned long saved_keys[32];
+    
+    memcpy(saved_keys, dc->dk, sizeof(saved_keys));
+    for (i = 0; i < 32; i++) KnL[i] = saved_keys[i];
     
     cp = data;
     for (i = 0; i < blocks; i++) {
         scrunch(cp, work);
-        desfunc(work, dc->dk);
+        desfunc(work, KnL);
         unscrun(work, cp);
         cp += 8;
     }
@@ -452,36 +453,46 @@ void des_dec(des_ctx *dc, unsigned char *data, int blocks) {
 int main(void) {
     des_ctx dc;
     int i;
-    unsigned long data[10];
-    char *cp;
-    char key[8] = {0x01,0x23,0x45,0x67,0x89,0xab,0xcd,0xef};
-    char x[8] = {0x01,0x23,0x45,0x67,0x89,0xab,0xcd,0xe7};
     
-    cp = x;
+    unsigned char key[8] = {0x01,0x23,0x45,0x67,0x89,0xab,0xcd,0xef};
+    unsigned char plaintext[8] = {0x01,0x23,0x45,0x67,0x89,0xab,0xcd,0xe7};
+    unsigned char ciphertext[8];
+    unsigned char decrypted[8];
+    
+    printf("DES Test\n");
+    printf("========\n");
+    printf("Key: ");
+    for (i = 0; i < 8; i++) printf("%02x ", key[i]);
+    printf("\n");
+    
+    printf("Plaintext: ");
+    for (i = 0; i < 8; i++) printf("%02x ", plaintext[i]);
+    printf("\n");
+    
     des_key(&dc, key);
-    des_enc(&dc, cp, 1);
     
-    printf("Enc(0..7,0..7) = ");
-    for (i = 0; i < 8; i++)
-        printf("%02x ", ((unsigned int)cp[i]) & 0x00ff);
+    memcpy(ciphertext, plaintext, 8);
+    des_enc(&dc, ciphertext, 1);
+    
+    printf("Ciphertext: ");
+    for (i = 0; i < 8; i++) printf("%02x ", ciphertext[i]);
     printf("\n");
     
-    des_dec(&dc, cp, 1);
+    memcpy(decrypted, ciphertext, 8);
+    des_dec(&dc, decrypted, 1);
     
-    printf("Dec(above,0..7) = ");
-    for (i = 0; i < 8; i++)
-        printf("%02x ", ((unsigned int)cp[i]) & 0x00ff);
+    printf("Decrypted: ");
+    for (i = 0; i < 8; i++) printf("%02x ", decrypted[i]);
     printf("\n");
     
-    cp = (char*)data;
-    for (i = 0; i < 10; i++) 
-        data[i] = i;
-    
-    des_enc(&dc, cp, 5);
-    des_dec(&dc, cp, 5);
-    
-    for (i = 0; i < 10; i += 2)
-        printf("Block %01d = %08lx %08lx.\n", i/2, data[i], data[i+1]);
+    if (memcmp(plaintext, decrypted, 8) == 0) {
+        printf("Test PASSED - Decrypted text matches original\n");
+    } else {
+        printf("Test FAILED - Decrypted text doesn't match original\n");
+        printf("Expected: ");
+        for (i = 0; i < 8; i++) printf("%02x ", plaintext[i]);
+        printf("\n");
+    }
     
     return 0;
 }
