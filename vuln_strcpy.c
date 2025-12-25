@@ -2,7 +2,7 @@
 #include <string.h>
 
 int main() {
-    char src[100];
+    char src[10];
     char dest[8];
 
     printf("Enter input: ");

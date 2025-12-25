@@ -1,7 +1,7 @@
 #include<stdio.h>
 #include<string.h>
 int main(){
-char src[100];
+char src[10];
 char dest[8];
 printf("enter input not more than 8:");
 fgets(src,sizeof(src),stdin);
